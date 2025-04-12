@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>카드 매치 게임</title>
+<style>
+body {
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+}
+.input-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+}
+.input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #eee;
+    padding: 15px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    width: calc(33% - 20px);
+    min-width: 200px;
+}
+@media (max-width: 768px) {
+    .input-group {
+        width: calc(50% - 10px);
+    }
+}
+@media (max-width: 576px) {
+    .input-group {
+        width: 100%;
+    }
+}
+.input-group label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.input-group input[type="number"],
+.input-group input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.button-group button,
+.input-group button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+.button-group button:hover,
+.input-group button:hover {
+    background-color: #0056b3;
+}
+#pairInputs {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+#pairInputs .input-group {
+    width: calc(33% - 20px);
+    min-width: 250px;
+}
+@media (max-width: 992px) {
+    #pairInputs .input-group {
+        width: calc(50% - 10px);
+    }
+}
+@media (max-width: 768px) {
+    #pairInputs .input-group {
+        width: 100%;
+    }
+}
+.card-grid {
+    display: grid;
+    gap: 5px;
+    margin-top: 20px;
+    justify-content: center;
+    align-items: center;
+}
+.card {
+    width: 80px;
+    height: 80px;
+    background-color: #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
+}
+.card.flipped {
+    background-color: #eee;
+}
+.card img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+.hidden {
+    color: transparent;
+    background-color: #ddd;
+}
+.hidden.flipped {
+    color: black;
+    background-color: #eee;
+}
+.hidden.flipped + img {
+    visibility: visible;
+}
+.card img {
+    visibility: hidden;
+}
+.card.flipped img {
+    visibility: visible;
+}
+.disable-click {
+    pointer-events: none;
+}
+#success-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 10;
+    text-align: center;
+    display: none; /* 초기 숨김 */
+}
+#success-popup h2 {
+    margin-top: 0;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <div id="step1">
+            <h2>매치할 쌍의 수를 입력하세요.</h2>
+            <div class="input-group">
+                <label for="numPairs">쌍의 수:</label>
+                <input type="number" id="numPairs" min="2" value="2">
+                <button onclick="nextStep(2)">다음</button>
+            </div>
+        </div>
+
+        <div id="step2" style="display: none;">
+            <h2>매치할 카드 쌍의 종류를 선택하세요.</h2>
+            <div class="button-group">
+                <button onclick="nextStep(3, 'image-text')">이미지 - 텍스트</button>
+                <button onclick="nextStep(3, 'text-text')">텍스트 - 텍스트</button>
+                <button onclick="nextStep(3, 'image-image')">이미지 - 이미지</button>
+            </div>
+        </div>
+
+        <div id="step3" style="display: none;">
+            <h2>카드 쌍을 입력하세요.</h2>
+            <div id="pairInputs">
+                </div>
+            <button onclick="nextStep(4)">게임 시작</button>
+        </div>
+
+        <div id="step4" style="display: none;">
+            <h2>카드 매치 게임</h2>
+            <div id="gameBoard" class="card-grid">
+                </div>
+        </div>
+
+        <div id="success-popup">
+            <h2>성공!</h2>
+            <p>모든 짝을 찾았습니다!</p>
+        </div>
+
+        <audio id="clapSound" src="https://upload.wikimedia.org/wikipedia/commons/6/6d/277021_sandermotions_applause-2.wav"></audio>
+    </div>
+
+    <script>
+        let numPairs = 0;
+        let cardType = '';
+        let cardData = [];
+        let flippedCards = [];
+        let matchedCards = [];
+        let canFlip = true;
+        const clapSound = document.getElementById('clapSound');
+        const cheerSound = document.getElementById('cheerSound');
+        const successPopup = document.getElementById('success-popup');
+
+        function nextStep(step, type) {
+            document.getElementById(`step${step - 1}`).style.display = 'none';
+            document.getElementById(`step${step}`).style.display = 'block';
+
+            if (step === 2) {
+                numPairs = parseInt(document.getElementById('numPairs').value);
+                if (isNaN(numPairs) || numPairs < 2) {
+                    alert('최소 2쌍 이상을 입력해주세요.');
+                    document.getElementById('step1').style.display = 'block';
+                    document.getElementById('step2').style.display = 'none';
+                    return;
+                }
+            } else if (step === 3) {
+                cardType = type;
+                const pairInputsDiv = document.getElementById('pairInputs');
+                pairInputsDiv.innerHTML = '';
+                for (let i = 0; i < numPairs; i++) {
+                    const pairDiv = document.createElement('div');
+                    pairDiv.classList.add('input-group');
+                    pairDiv.innerHTML = `<h3>${i + 1}번째 쌍</h3>`;
+
+                    if (cardType === 'image-text') {
+                        pairDiv.innerHTML += `
+                            <label for="imgUrl${i}_1">이미지 URL:</label>
+                            <input type="text" id="imgUrl${i}_1"><br>
+                            <label for="text${i}_1">텍스트:</label>
+                            <input type="text" id="text${i}_1"><br>
+                        `;
+                    } else if (cardType === 'text-text') {
+                        pairDiv.innerHTML += `
+                            <label for="text${i}_1">텍스트 1:</label>
+                            <input type="text" id="text${i}_1"><br>
+                            <label for="text${i}_2">텍스트 2:</label>
+                            <input type="text" id="text${i}_2"><br>
+                        `;
+                    } else if (cardType === 'image-image') {
+                        pairDiv.innerHTML += `
+                            <label for="imgUrl${i}_1">이미지 URL 1:</label>
+                            <input type="text" id="imgUrl${i}_1"><br>
+                            <label for="imgUrl${i}_2">이미지 URL 2:</label>
+                            <input type="text" id="imgUrl${i}_2"><br>
+                        `;
+                    }
+                    pairInputsDiv.appendChild(pairDiv);
+                }
+            } else if (step === 4) {
+                cardData = [];
+                for (let i = 0; i < numPairs; i++) {
+                    if (cardType === 'image-text') {
+                        const imgUrl = document.getElementById(`imgUrl${i}_1`).value;
+                        const text = document.getElementById(`text${i}_1`).value;
+                        cardData.push({ type: 'image', value: imgUrl, match: text });
+                        cardData.push({ type: 'text', value: text, match: imgUrl });
+                    } else if (cardType === 'text-text') {
+                        const text1 = document.getElementById(`text${i}_1`).value;
+                        const text2 = document.getElementById(`text${i}_2`).value;
+                        cardData.push({ type: 'text', value: text1, match: text2 });
+                        cardData.push({ type: 'text', value: text2, match: text1 });
+                    } else if (cardType === 'image-image') {
+                        const imgUrl1 = document.getElementById(`imgUrl${i}_1`).value;
+                        const imgUrl2 = document.getElementById(`imgUrl${i}_2`).value;
+                        cardData.push({ type: 'image', value: imgUrl1, match: imgUrl2 });
+                        cardData.push({ type: 'image', value: imgUrl2, match: imgUrl1 });
+                    }
+                }
+                startGame();
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function getGridColumns(numCards) {
+            const numPairs = numCards / 2;
+            if (numPairs === 2) return 2;
+            if (numPairs === 3) return 3;
+            if (numPairs === 4) return 2;
+            if (numPairs === 5) return 2;
+            if (numPairs === 6) return 3;
+            if (numPairs === 8) return 4;
+            const sqrt = Math.sqrt(numCards);
+            const roundSqrt = Math.round(sqrt);
+            if (roundSqrt * roundSqrt === numCards) {
+                return roundSqrt;
+            } else if (roundSqrt * (roundSqrt + 1) >= numCards) {
+                return roundSqrt + (numCards % roundSqrt > 0 ? 1 : 0);
+            } else {
+                return Math.ceil(numCards / Math.floor(numCards / Math.ceil(sqrt)));
+            }
+        }
+
+        function startGame() {
+            shuffleArray(cardData);
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            const numCards = cardData.length;
+            const columns = getGridColumns(numCards);
+            gameBoard.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+            cardData.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.index = index;
+                cardElement.addEventListener('click', flipCard);
+                if (card.type === 'image') {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = card.value;
+                    cardElement.appendChild(imgElement);
+                } else {
+                    cardElement.innerText = card.value;
+                    cardElement.classList.add('hidden');
+                }
+                gameBoard.appendChild(cardElement);
+            });
+            flippedCards = [];
+            matchedCards = [];
+            canFlip = true;
+        }
+
+        function flipCard() {
+            if (!canFlip || flippedCards.length >= 2 || this.classList.contains('flipped') || matchedCards.includes(this)) {
+                return;
+            }
+
+            this.classList.add('flipped');
+            const index = parseInt(this.dataset.index);
+            flippedCards.push({ element: this, data: cardData[index] });
+
+            if (cardData[index].type === 'text') {
+                this.classList.add('hidden');
+            }
+
+            if (flippedCards.length === 2) {
+                canFlip = false;
+                setTimeout(checkMatch, 500);
+            }
+        }
+
+        function checkMatch() {
+            const card1 = flippedCards[0];
+            const card2 = flippedCards[1];
+
+            if (card1.data.match === card2.data.value) {
+                matchedCards.push(card1.element);
+                matchedCards.push(card2.element);
+                if (matchedCards.length === cardData.length) {
+                    // 모든 카드 매치 완료 시 팝업 및 효과음
+                    successPopup.style.display = 'block';
+                    clapSound.play();
+                    cheerSound.play();
+                    setTimeout(() => {
+                        successPopup.style.display = 'none';
+                        alert('모든 카드를 매치했습니다! 축하합니다!');
+                    }, 2000); // 팝업 및 효과음 후 최종 메시지 표시
+                }
+                canFlip = true;
+                flippedCards = [];
+                return;
+            } else {
+                setTimeout(() => {
+                    card1.element.classList.remove('flipped');
+                    card2.element.classList.remove('flipped');
+                    if (card1.data.type === 'text') {
+                        card1.element.classList.add('hidden');
+                    }
+                    if (card2.data.type === 'text') {
+                        card2.element.classList.add('hidden');
+                    }
+                    canFlip = true;
+                }, 500);
+            }
+            flippedCards = [];
+        }
+    </script>
+</body>
+</html>
